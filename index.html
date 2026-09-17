@@ -1,0 +1,1949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>AI Companions</title>
+  <link rel="manifest" href="data:application/json,{'name':'AI Companions','short_name':'Companions','start_url':'./','display':'standalone','background_color':'#0a0a0f','theme_color':'#0a0a0f','icons':[{'src':'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect fill=%27%237c3aed%27 width=%27100%27 height=%27100%27 rx=%2720%27/%3E%3Ctext x=%2750%27 y=%2768%27 font-size=%2750%27 text-anchor=%27middle%27 fill=%27white%27%3E✦%3C/text%3E%3C/svg%3E','sizes':'any','type':'image/svg+xml'}]}">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a26;
+      --border: #2a2a3a;
+      --text: #f0f0f5;
+      --text-muted: #9a9ab0;
+      --accent: #7c3aed;
+      --accent-soft: rgba(124, 58, 237, 0.25);
+      --danger: #ef4444;
+      --success: #22c55e;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body { height:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; background:var(--bg); color:var(--text); overflow:hidden; }
+
+    .screen { display:none; height:100%; flex-direction:column; position:relative; }
+    .screen.active { display:flex; }
+
+    .header { display:flex; align-items:center; gap:12px; padding:12px 16px; background:rgba(10,10,15,0.85); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); z-index:20; flex-shrink:0; }
+    .header h1 { font-size:1.15rem; font-weight:600; flex:1; }
+    .btn-icon { width:40px; height:40px; border-radius:50%; border:none; background:var(--surface2); color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1.1rem; transition:background .2s; }
+    .btn-icon:active { background:var(--border); }
+
+    #home-screen { background:var(--bg); }
+    .home-content { flex:1; overflow-y:auto; padding:16px; padding-bottom:100px; }
+    .section-title { font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:12px; margin-top:8px; }
+    .char-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+    .char-card { background:var(--surface); border-radius:16px; overflow:hidden; border:1px solid var(--border); cursor:pointer; transition:transform .15s,border-color .15s; position:relative; }
+    .char-card:active { transform:scale(0.97); }
+    .char-card-img { width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--surface2); display:block; }
+    .char-card-info { padding:10px 12px 12px; }
+    .char-card-name { font-weight:600; font-size:0.95rem; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .char-card-desc { font-size:0.75rem; color:var(--text-muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.3; }
+    .empty-state { text-align:center; padding:60px 20px; color:var(--text-muted); }
+    .empty-state .icon { font-size:3rem; margin-bottom:16px; opacity:0.5; }
+
+    .fab { position:fixed; bottom:24px; right:24px; width:56px; height:56px; border-radius:50%; background:var(--accent); color:white; border:none; font-size:1.8rem; box-shadow:0 4px 20px rgba(124,58,237,0.5); cursor:pointer; z-index:30; display:flex; align-items:center; justify-content:center; transition:transform .15s; }
+    .fab:active { transform:scale(0.92); }
+
+    #create-screen .form-content { flex:1; overflow-y:auto; padding:20px 16px; padding-bottom:40px; }
+    .form-group { margin-bottom:20px; }
+    .form-group label { display:block; font-size:0.85rem; color:var(--text-muted); margin-bottom:8px; }
+    .form-group input[type="text"], .form-group input[type="number"], .form-group select, .form-group textarea { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; color:var(--text); font-size:1rem; outline:none; transition:border-color .2s; }
+    .form-group select { appearance:none; -webkit-appearance:none; cursor:pointer; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239a9ab0' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--accent); }
+    .char-gender-age { display:flex; gap:12px; }
+    .char-gender-age .form-group { flex:1; }
+    .form-group textarea { min-height:100px; resize:vertical; font-family:inherit; }
+    .upload-area { border:2px dashed var(--border); border-radius:12px; padding:24px; text-align:center; cursor:pointer; background:var(--surface); transition:border-color .2s,background .2s; position:relative; overflow:hidden; }
+    .upload-area:hover, .upload-area.dragover { border-color:var(--accent); background:var(--accent-soft); }
+    .upload-area img { max-width:100%; max-height:160px; border-radius:8px; display:block; margin:0 auto; }
+    .upload-placeholder { color:var(--text-muted); font-size:0.9rem; }
+    .upload-area input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+    .btn-primary { width:100%; padding:14px; background:var(--accent); color:white; border:none; border-radius:12px; font-size:1rem; font-weight:600; cursor:pointer; transition:opacity .2s; }
+    .btn-primary:active { opacity:0.85; }
+    .btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
+    .btn-secondary { width:100%; padding:12px; background:transparent; color:var(--text-muted); border:1px solid var(--border); border-radius:12px; font-size:0.95rem; cursor:pointer; margin-top:10px; }
+
+    #chat-screen { background:#000; }
+    .chat-bg { position:absolute; inset:0; background-size:cover; background-position:center top; background-repeat:no-repeat; z-index:0; }
+    .chat-bg::after { content:""; position:absolute; inset:0; background:linear-gradient(to bottom,rgba(0,0,0,5) 0%,rgba(0,0,0,0.15) 40%,rgba(0,0,0,0.45) 100%); }
+    .chat-header { position:relative; z-index:10; background:rgba(0,0,0,0.4); backdrop-filter:blur(8px); }
+    .chat-header .char-mini { display:flex; align-items:center; gap:10px; flex:1; min-width:0; }
+    .chat-header .char-mini img { width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.2); }
+    .chat-header .char-mini .name { font-weight:600; font-size:1.05rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .chat-messages { flex:1; overflow-y:auto; padding:16px; padding-top:40px; position:relative; z-index:5; display:flex; flex-direction:column; gap:14px; scroll-behavior:smooth; -webkit-mask-image:linear-gradient(to bottom,transparent 0%,black 40px,black calc(100% - 20px),transparent 100%); mask-image:linear-gradient(to bottom,transparent 0%,black 40px,black calc(100% - 20px),transparent 100%); }
+    .msg { max-width:92%; animation:fadeIn .25s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .msg.user { align-self:flex-end; position:relative; }
+    .msg.assistant { align-self:flex-start; }
+    .msg-bubble { padding:13px 17px; border-radius:18px; line-height:1.55; font-size:1.08rem; word-wrap:break-word; }
+    .msg.user .msg-bubble { background:rgba(124,58,237,0.2); color:white; border-bottom-right-radius:6px; }
+    .msg-edit-btn { position:absolute; left:-34px; top:50%; transform:translateY(-50%); width:28px; height:28px; border-radius:50%; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.15); color:#ddd; font-size:0.75rem; display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:0.7; }
+    .scene-btn { margin-top:8px; padding:5px 12px; border-radius:20px; background:rgba(124,58,237,0.18); border:1px solid rgba(124,58,237,0.35); color:#c4b5fd; font-size:0.72rem; cursor:pointer; transition:background .2s,transform .15s; align-self:flex-start; }
+ .scene-btn:active { transform:scale(0.95); background:rgba(124,58,237,0.35); }
+    .msg.assistant .msg-bubble { background:rgba(26,26,38,0.2); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.08); color:var(--text); border-bottom-left-radius:6px; }
+    .msg.assistant .msg-bubble em { font-style:italic; color:#c4b5fd; opacity:0.95; }
+    .msg.assistant .msg-bubble strong { font-weight:700; color:#fff; }
+    .msg.assistant .msg-bubble p { margin-bottom:0.6em; }
+    .msg.assistant .msg-bubble p:last-child { margin-bottom:0; }
+    .typing-indicator { display:none; align-self:flex-start; padding:12px 18px; background:rgba(26,26,38,0.85); border-radius:18px; border-bottom-left-radius:6px; gap:5px; }
+    .typing-indicator.active { display:flex; }
+    .typing-indicator span { width:7px; height:7px; background:#a78bfa; border-radius:50%; animation:bounce 1.2s infinite; }
+    .typing-indicator span:nth-child(2) { animation-delay:0.15s; }
+    .typing-indicator span:nth-child(3) { animation-delay:0.3s; }
+    @keyframes bounce { 0%,60%,100% { transform:translateY(0); opacity:0.6; } 30% { transform:translateY(-5px); opacity:1; } }
+
+    .chat-input-area { position:relative; z-index:10; padding:10px 12px 16px; background:linear-gradient(to top,rgba(0,0,0,0.35) 0%,transparent 100%); flex-shrink:0; }
+    .input-row { display:flex; gap:8px; align-items:flex-end; }
+    .chat-input { flex:1; background:rgba(30,30,45,0.9); border:1px solid rgba(255,255,255,0.12); border-radius:22px; padding:12px 18px; color:white; font-size:1.05rem; outline:none; resize:none; max-height:120px; min-height:48px; line-height:1.4; font-family:inherit; }
+    .chat-input::placeholder { color:rgba(255,255,255,0.4); }
+    .send-btn { width:46px; height:46px; border-radius:50%; background:var(--accent); border:none; color:white; font-size:1.2rem; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+    .send-btn:disabled { opacity:0.5; }
+
+    .img-btn { width:46px; height:46px; border-radius:50%; background:var(--surface2); border:1px solid rgba(255,255,255,0.12); color:white; font-size:1.2rem; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:background .2s,transform .15s; }
+    .img-btn:active { transform:scale(0.92); background:var(--accent); }
+    .img-btn:disabled { opacity:0.5; }
+
+    .msg-image-wrap { margin-top:8px; border-radius:14px; overflow:hidden; position:relative; }
+    .msg-image-wrap img { width:100%; display:block; border-radius:14px; cursor:pointer; }
+    .msg-image-loading { display:flex; flex-direction:column; align-items:center; gap:10px; padding:30px 20px; background:rgba(30,30,45,0.8); border-radius:14px; color:var(--text-muted); font-size:0.9rem; }
+    .msg-image-loading .spinner { width:32px; height:32px; border:3px solid rgba(255,255,255,0.15); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .msg-image-prompt { font-size:0.8rem; color:var(--text-muted); margin-top:6px; font-style:italic; }
+
+    .image-prompt-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center; padding:20px; }
+    .image-prompt-overlay.active { display:flex; }
+    .image-prompt-box { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; width:100%; max-width:400px; }
+    .image-prompt-box h2 { font-size:1.1rem; margin-bottom:12px; }
+    .image-prompt-box textarea { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px; color:var(--text); font-size:0.95rem; outline:none; min-height:80px; resize:vertical; font-family:inherit; }
+    .image-prompt-box textarea:focus { border-color:var(--accent); }
+    .image-prompt-box .hint { font-size:0.78rem; color:var(--text-muted); margin:8px 0 14px; }
+    .image-prompt-box .btn-row { display:flex; gap:10px; }
+    .image-prompt-box .btn-row button { flex:1; padding:12px; border-radius:10px; font-size:0.95rem; cursor:pointer; border:none; }
+    .image-prompt-box .btn-generate { background:var(--accent); color:white; font-weight:600; }
+    .image-prompt-box .btn-cancel { background:transparent; color:var(--text-muted); border:1px solid var(--border) !important; }
+
+    .image-viewer { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:200; align-items:center; justify-content:center; cursor:zoom-out; }
+    .image-viewer.active { display:flex; }
+    .image-viewer img { max-width:95%; max-height:95%; border-radius:8px; object-fit:contain; }
+
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:flex-end; justify-content:center; }
+    .modal-overlay.active { display:flex; }
+    .modal { background:var(--surface); width:100%; max-width:480px; border-radius:20px 20px 0 0; padding:20px; max-height:80vh; overflow-y:auto; }
+    .modal h2 { font-size:1.1rem; margin-bottom:16px; }
+    .api-key-input { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px; color:var(--text); font-size:0.9rem; margin-bottom:12px; }
+    .hint { font-size:0.8rem; color:var(--text-muted); margin-bottom:16px; line-height:1.4; }
+    .hint a { color:#a78bfa; }
+
+    .loading-overlay { display:none; position:fixed; inset:0; background:var(--bg); z-index:200; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+    .loading-overlay.active { display:flex; }
+    .spinner { width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--surface2); color:white; padding:10px 18px; border-radius:10px; font-size:0.9rem; opacity:0; transition:all .3s; z-index:150; pointer-events:none; border:1px solid var(--border); }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    .char-card .delete-btn { position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; color:white; font-size:0.75rem; display:none; align-items:center; justify-content:center; cursor:pointer; z-index:5; }
+    .char-card:hover .delete-btn, .char-card.show-delete .delete-btn { display:flex; }
+
+    .moment-card { background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:12px; }
+    .moment-card .moment-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .moment-card .moment-date { font-size:0.78rem; color:var(--text-muted); }
+    .moment-card .moment-note { font-size:0.85rem; color:#c4b5fd; font-style:italic; margin-bottom:8px; }
+    .moment-card .moment-snippet { font-size:0.83rem; line-height:1.45; color:var(--text); max-height:220px; overflow-y:auto; white-space:pre-wrap; }
+    .moment-card .moment-actions { display:flex; gap:8px; margin-top:10px; }
+    .moment-card .moment-actions button { padding:8px 12px; border-radius:8px; font-size:0.8rem; cursor:pointer; border:1px solid var(--border); background:var(--surface2); color:var(--text); }
+    .moment-card .moment-actions .delete-moment { color:var(--danger); }
+    .moments-empty { text-align:center; padding:40px 20px; color:var(--text-muted); }
+    .moments-empty .icon { font-size:2.5rem; margin-bottom:12px; opacity:0.5; }
+    
+    .crop-overlay { display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.92); flex-direction:column; align-items:center; justify-content:center; padding:16px; }
+    .crop-overlay.active { display:flex; }
+    .crop-title { color:#c4b5fd; font-size:1.1rem; font-weight:600; margin-bottom:12px; text-align:center; }
+    .crop-stage { position:relative; max-width:340px; width:100%; border-radius:12px; overflow:hidden; }
+    .crop-stage img { width:100%; display:block; pointer-events:none; user-select:none; -webkit-user-drag:none; }
+    .crop-circle { position:absolute; border:3px solid #c4b5fd; border-radius:50%; box-shadow:0 0 0 9999px rgba(0,0,0,0.55); cursor:move; touch-action:none; box-sizing:border-box; }
+    .crop-zoom-row { display:flex; align-items:center; gap:10px; margin-top:16px; width:280px; }
+    .crop-zoom-row label { color:rgba(255,255,255,0.5); font-size:0.8rem; }
+    .crop-zoom-row input[type=range] { flex:1; accent-color:#c4b5fd; }
+    .crop-zoom-value { color:rgba(255,255,255,0.6); font-size:0.75rem; width:36px; text-align:right; }
+    .crop-btn-row { display:flex; gap:12px; margin-top:20px; }
+    .crop-btn-row button { padding:12px 28px; border-radius:10px; font-size:1rem; font-weight:500; border:none; cursor:pointer; }
+    .crop-btn-cancel { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.7); }
+    .crop-btn-confirm { background:#c4b5fd; color:#1a0a2e; }
+    .crop-hint { color:rgba(255,255,255,0.35); font-size:0.75rem; margin-top:12px; text-align:center; }
+  </style>
+</head>
+<body>
+
+  <!-- Loading -->
+  <div class="loading-overlay" id="loading">
+    <div class="spinner"></div>
+    <div style="color:var(--text-muted);font-size:0.9rem">Loading...</div>
+  </div>
+
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="home-screen">
+    <div class="header">
+      <h1>✦ AI Companions</h1>
+      <button class="btn-icon" onclick="openSettings()" title="Settings">⚙️</button>
+    </div>
+    <div class="home-content">
+      <div class="section-title">Your Companions</div>
+      <div class="char-grid" id="char-grid">
+        <!-- Cards injected here -->
+      </div>
+      <div class="empty-state" id="empty-state" style="display:none">
+        <div class="icon">✦</div>
+        <p>No companions yet.</p>
+        <p style="margin-top:8px;font-size:0.9rem">Tap + to create your first AI character.</p>
+      </div>
+    </div>
+    <button class="fab" onclick="showCreate()" title="Create new character">+</button>
+  </div>
+
+  <!-- CREATE SCREEN -->
+  <div class="screen" id="create-screen">
+    <div class="header">
+      <button class="btn-icon" onclick="showHome()">←</button>
+      <h1>Create Companion</h1>
+    </div>
+    <div class="form-content">
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="char-name" placeholder="e.g. May, Lyria, Eliane..." maxlength="40" />
+      </div>
+      <div class="form-group">
+        <label>Personality / Description</label>
+        <textarea id="char-desc" placeholder="Describe who they are, how they talk, their world, relationship to you..."></textarea>
+      </div>
+      <div class="char-gender-age">
+        <div class="form-group">
+          <label>Gender</label>
+          <select id="char-gender">
+            <option value="">Not specified</option>
+            <option value="Female">Female</option>
+            <option value="Male">Male</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" id="char-age" placeholder="e.g. 25" min="1" max="9999" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Opening Intro (first message)</label>
+        <textarea id="char-intro" placeholder="Optional: The first message the character will say when you start chatting. Example: *She looks up as you approach* **Oh... you're finally here.**"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Your Persona — Name (how you appear in story)</label>
+        <input type="text" id="char-persona-name" placeholder="e.g. Kael, Traveler, yourself..." maxlength="40" />
+      </div>
+      <div class="form-group">
+        <label>Your Persona — Appearance & Clothes</label>
+        <textarea id="char-persona-look" placeholder="Describe how you look in the story..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Your Persona — Gear / Weapons</label>
+        <input type="text" id="char-persona-gear" placeholder="Your equipment, weapons, items..." />
+      </div>
+      <div class="form-group">
+        <label>Your Persona — Powers / Skills</label>
+        <input type="text" id="char-persona-powers" placeholder="Your abilities, magic, skills..." />
+      </div>
+      <div class="form-group">
+        <label>Chat Background</label>
+        <div class="upload-area" id="bg-upload">
+          <div class="upload-placeholder" id="bg-placeholder">🖼️ Tap to upload background</div>
+          <img id="bg-preview" style="display:none" />
+          <input type="file" accept="image/*" onchange="handleBg(event)" />
+        </div>
+      </div>
+      <button class="btn-primary" id="create-btn" onclick="createCharacter()">Create Companion</button>
+      <button class="btn-secondary" id="create-cancel-btn" onclick="handleCreateCancel()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- CHAT SCREEN (updated with image sticker button) -->
+  <div class="screen" id="chat-screen">
+    <div class="chat-bg" id="chat-bg"></div>
+    <div class="header chat-header">
+      <button class="btn-icon" onclick="showHome()">←</button>
+      <div class="char-mini" onclick="openEditModal()" style="cursor:pointer" title="Tap to edit character">
+ <img id="chat-avatar" src="" alt="" />
+ <div class="name" id="chat-name">Character</div>
+ <span id="token-counter" style="font-size:0.7rem;color:#a78bfa;background:rgba(124,58,237,0.15);padding:2px 8px;border-radius:10px;white-space:nowrap">🪙 500</span>
+ </div>
+      <button class="btn-icon" onclick="clearChat()" title="Clear chat">🗑️</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <!-- Messages -->
+    </div>
+    <div class="typing-indicator" id="typing">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="chat-input-area">
+ <div class="input-row">
+ <button class="img-btn" onclick="openImagePrompt()" title="Generate image">🎨</button>
+ <textarea class="chat-input" id="user-input" placeholder="Send a message... (or /image [prompt])" rows="1" onkeydown="handleKey(event)"></textarea>
+ <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+ </div>
+ </div>
+
+    <!-- IMAGE STICKER BUTTON (new) -->
+   <div id="image-sticker-button" style="display:none; position:fixed; bottom:110px; left:50%; transform:translateX(-50%); z-index:25; background:rgba(26,26,38,0.92); border:1px solid rgba(255,255,255,0.12); border-radius:9999px; padding:10px 20px; box-shadow:0 10px 30px rgba(0,0,0,0.6); align-items:center; gap:10px; cursor:pointer; font-size:0.95rem; transition:all 0.2s;">
+      <button onclick="applyStickerToChat()" style="background:var(--accent); color:white; border:none; padding:8px 16px; border-radius:9999px; font-weight:600; font-size:0.9rem;">🖼️ Apply Image Sticker</button>
+      <span style="color:var(--text-muted); font-size:0.8rem;">— image from your last reply</span>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+      <h2>Settings</h2>
+      <label style="font-size:0.85rem;color:var(--text-muted)">Groq API Key (for real AI replies)</label>
+      <input type="password" class="api-key-input" id="api-key" placeholder="gsk_..." />
+      <div class="hint">
+        Get a free key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a>.<br>
+        It’s free, fast, and works great for roleplay. Your key stays only on this device.
+      </div>
+      <button class="btn-primary" onclick="saveSettings()">Save</button>
+      <button class="btn-secondary" onclick="closeSettings()">Close</button>
+      <hr style="border-color:var(--border);margin:16px 0">
+      <button onclick="clearAllData()" style="width:100%;background:#dc2626;color:#fff;padding:10px;border:none;border-radius:8px;font-size:0.9rem">🗑️ Clear All Data</button>
+      <p style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;text-align:center">Deletes all characters, chats, and settings. Cannot be undone.</p>
+    </div>
+  </div>
+
+  <!-- CROP MODAL -->
+  <div class="crop-overlay" id="crop-modal">
+    <div class="crop-title">🎯 Focus on Character</div>
+    <div class="crop-stage" id="crop-stage">
+      <img id="crop-img" src="" alt="" />
+      <div class="crop-circle" id="crop-circle"></div>
+    </div>
+    <div class="crop-zoom-row">
+      <label>🔍</label>
+      <input type="range" id="crop-zoom" min="30" max="100" value="50" step="5" />
+      <span class="crop-zoom-value" id="crop-zoom-val">50%</span>
+    </div>
+    <div class="crop-btn-row">
+      <button class="crop-btn-cancel" onclick="closeCropMode()">Cancel</button>
+      <button class="crop-btn-confirm" onclick="confirmCrop()">Set as Profile</button>
+    </div>
+    <div class="crop-hint">Drag circle to position • Slide to resize</div>
+  </div>
+
+  <!-- MOMENTS MODAL -->
+  <div class="modal-overlay" id="moments-modal">
+    <div class="modal">
+      <h2>📸 Captured Moments</h2>
+      <div class="hint" style="margin-bottom:12px">
+        Moments you've captured from your conversations. Type <code style="color:#c4b5fd">/capture [optional note]</code> in chat to save a moment.
+      </div>
+      <div id="moments-list"></div>
+      <button class="btn-secondary" onclick="closeMomentsModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- ABOUT MODAL -->
+  <div class="modal-overlay" id="about-modal">
+    <div class="modal">
+      <h2>✦ About AI Companions</h2>
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:3rem;margin-bottom:8px">✦</div>
+        <div style="font-size:1.1rem;font-weight:600">AI Companions</div>
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">v1.0 — built with ❤️</div>
+      </div>
+      <div class="hint" style="line-height:1.6;margin-bottom:16px">
+        Create your own AI characters, chat with them, and build stories together.
+        Each companion has their own personality, appearance, and memory.
+        Your data stays on your device — nothing is uploaded.
+      </div>
+      <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px">📖 Slash Commands:</div>
+      <div style="font-size:0.82rem;line-height:1.8;margin-bottom:16px">
+        <code style="color:#c4b5fd">/tokens</code> — check daily tokens remaining<br>
+        <code style="color:#c4b5fd">/story</code> — set the story/scenario<br>
+        <code style="color:#c4b5fd">/intro</code> — set character's opening message<br>
+        <code style="color:#c4b5fd">/image [prompt]</code> — generate an image<br>
+        <code style="color:#c4b5fd">/capture [note]</code> — save a moment<br>
+        <code style="color:#c4b5fd">/moments</code> — view captured moments<br>
+        <code style="color:#c4b5fd">/ebook</code> — export story as text file<br>
+        <code style="color:#c4b5fd">/persona</code> — edit your persona for this character<br>
+        <code style="color:#c4b5fd">/history</code> — view full conversation history<br>
+        <code style="color:#c4b5fd">/retry</code> — regenerate last AI reply<br>
+        <code style="color:#c4b5fd">/addchar</code> — add another character to the story<br>
+        <code style="color:#c4b5fd">/edit</code> — edit character's profile & appearance<br>
+        <code style="color:#c4b5fd">/about</code> — this screen
+      </div>
+      <div class="hint" style="margin-bottom:16px">
+        🔑 Go to ⚙️ Settings to add your free Groq API key for real AI replies.
+        Without a key, the app runs in demo mode.
+      </div>
+      <button class="btn-primary" onclick="closeAboutModal()">Got it!</button>
+    </div>
+  </div>
+
+  <!-- PERSONA MODAL -->
+  <div class="modal-overlay" id="persona-modal">
+    <div class="modal">
+      <h2>👤 Your Persona</h2>
+      <div class="hint" style="margin-bottom:12px">
+        This is how you appear in the story. The AI will describe and treat you according to this. Saved for this character only.
+      </div>
+      <div class="form-group">
+        <label>Your Name (in story)</label>
+        <input type="text" id="persona-name" placeholder="e.g. Kael, Traveler..." maxlength="40" />
+      </div>
+      <div class="form-group">
+        <label>Appearance & Clothes</label>
+        <textarea id="persona-look" placeholder="Describe how you look..." style="min-height:80px"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Gear / Weapons</label>
+        <input type="text" id="persona-gear" placeholder="Your equipment..." />
+      </div>
+      <div class="form-group">
+        <label>Powers / Skills</label>
+        <input type="text" id="persona-powers" placeholder="Your abilities..." />
+        <input type="file" accept="image/*" onchange="handleEditBg(event)" />
+      </div>
+      <button id="bg-edit-crop-btn" style="display:none;width:100%;margin-top:8px;padding:10px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:8px;font-size:0.9rem" onclick="setProfileFromEditBg()">🎯 Set as Profile Picture</button>
+    </div>
+    <button class="btn-primary" onclick="savePersona()">Save Persona</button>
+    <button class="btn-secondary" onclick="closePersonaModal()">Close</button>
+  </div>
+
+  <!-- HISTORY MODAL -->
+  <div class="modal-overlay" id="history-modal">
+    <div class="modal">
+      <h2>📜 Conversation History</h2>
+      <div class="hint" style="margin-bottom:12px">
+        Full conversation from beginning to present.
+      </div>
+      <div id="history-list" style="display:flex;flex-direction:column;gap:10px;max-height:50vh;overflow-y:auto"></div>
+      <button class="btn-secondary" onclick="closeHistoryModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- ADD CHARACTER MODAL -->
+  <div class="modal-overlay" id="addchar-modal">
+    <div class="modal">
+      <h2>➕ Add Character to Story</h2>
+      <div class="hint" style="margin-bottom:12px">
+        Add other companions as guest characters in the current story.
+      </div>
+      <div id="addchar-list" style="display:flex;flex-direction:column;gap:10px;max-height:50vh;overflow-y:auto"></div>
+      <button class="btn-secondary" onclick="closeAddCharModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- EDIT CHARACTER MODAL -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal">
+      <h2>✏️ Edit Character</h2>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="edit-name" maxlength="40" />
+      </div>
+      <div class="form-group">
+        <label>Personality / Description</label>
+        <textarea id="edit-desc"></textarea>
+      </div>
+      <div class="char-gender-age">
+        <div class="form-group">
+          <label>Gender</label>
+          <select id="edit-gender">
+            <option value="">Not specified</option>
+            <option value="Female">Female</option>
+            <option value="Male">Male</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" id="edit-age" min="1" max="9999" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Opening Intro (first message)</label>
+        <textarea id="edit-intro"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Chat Background</label>
+        <div class="upload-area" id="bg-edit-upload">
+          <div class="upload-placeholder" id="bg-edit-placeholder">🖼️ Tap to change background</div>
+          <img id="bg-edit-preview" style="display:none" />
+          <input type="file" accept="image/*" onchange="handleEditBg(event)" />
+        </div>
+      </div>
+      <button class="btn-primary" onclick="saveEdit()">Save Changes</button>
+      <button class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- IMAGE PROMPT OVERLAY -->
+  <div class="image-prompt-overlay" id="image-prompt-overlay">
+    <div class="image-prompt-box">
+      <h2>🎨 Generate Image</h2>
+      <textarea id="image-prompt-input" placeholder="Describe the image you want to create..." rows="3"></textarea>
+      <div class="hint">Tip: Be descriptive! e.g. "a sunset over mountains, watercolor style"</div>
+      <div class="btn-row">
+        <button class="btn-cancel" onclick="closeImagePrompt()">Cancel</button>
+        <button class="btn-generate" onclick="submitImagePrompt()">Generate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN IMAGE VIEWER -->
+  <div class="image-viewer" id="image-viewer" onclick="closeImageViewer()">
+    <img id="image-viewer-img" src="" alt="" />
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ========== STATE ==========
+    var characters = JSON.parse(localStorage.getItem('ai_companions') || '[]');
+    var currentCharId = null;
+    var avatarData = null;
+    var bgData = null;
+    var apiKey = localStorage.getItem('groq_api_key') || '';
+    var dailyTokens = parseInt(localStorage.getItem('dailyTokens')) || 500;
+    var lastTokenReset = localStorage.getItem('token_reset') || Date.now();
+    var editAvatarData = null;
+    var editBgData = null;
+    var cropState = { imgSrc: null, callback: null, imgW: 0, imgH: 0, dispW: 0, dispH: 0, circleX: 0, circleY: 0, circleR: 0, dragging: false, lastX: 0, lastY: 0 };
+
+    // ========== TOKEN CHECK & REFRESH ==========
+    function refreshTokens() {
+      const now = Date.now();
+      if (now - parseInt(lastTokenReset) > 24 * 60 * 60 * 1000) {
+        dailyTokens = 500;
+        lastTokenReset = now;
+        localStorage.setItem('token_reset', lastTokenReset);
+        toast(`Tokens refreshed! You have ${dailyTokens} tokens left.`);
+      }
+    }
+
+    function getTokenBalance() {
+      refreshTokens();
+      return dailyTokens;
+    }
+
+    function useTokens(amount) {
+      dailyTokens = Math.max(0, dailyTokens - amount);
+      localStorage.setItem('dailyTokens', dailyTokens);
+      if (dailyTokens < 50) {
+        toast(`⚠️ Low tokens! Only ${dailyTokens} left.`);
+      }
+      return dailyTokens;
+    }
+
+    // ========== INIT ==========
+    function init() {
+      document.getElementById('api-key').value = apiKey;
+      refreshTokens();
+      renderCharacterList();
+      document.getElementById('loading').classList.remove('active');
+
+      // Attach crop button listeners
+      var btnCrop = document.getElementById('bg-crop-btn');
+      if (btnCrop) btnCrop.addEventListener('click', setProfileFromBg);
+      var btnEditCrop = document.getElementById('bg-edit-crop-btn');
+      if (btnEditCrop) btnEditCrop.addEventListener('click', setProfileFromEditBg);
+    }
+
+    // ========== NAVIGATION ==========
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+    function showHome() {
+      currentCharId = null;
+      renderCharacterList();
+      showScreen('home-screen');
+    }
+    function showCreate() {
+      document.getElementById('char-name').value = '';
+      document.getElementById('char-desc').value = '';
+      document.getElementById('char-gender').value = '';
+      document.getElementById('char-age').value = '';
+      document.getElementById('char-intro').value = '';
+      document.getElementById('char-persona-name').value = '';
+      document.getElementById('char-persona-look').value = '';
+      document.getElementById('char-persona-gear').value = '';
+      document.getElementById('char-persona-powers').value = '';
+      avatarData = null;
+      bgData = null;
+      document.getElementById('bg-preview').style.display = 'none';
+      document.getElementById('bg-placeholder').style.display = 'block';
+      showScreen('create-screen');
+    }
+
+    // ========== CHARACTER LIST ==========
+    function renderCharacterList() {
+      const grid = document.getElementById('char-grid');
+      const empty = document.getElementById('empty-state');
+      if (characters.length === 0) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+      grid.innerHTML = characters.map(c => `
+        <div class="char-card" onclick="openChat('${c.id}')">
+          <button class="delete-btn" onclick="event.stopPropagation(); deleteChar('${c.id}')">✕</button>
+          <img class="char-card-img" src="${c.avatar || defaultAvatar(c.name)}" alt="${c.name}" />
+          <div class="char-card-info">
+            <div class="char-card-name">${escapeHtml(c.name)}</div>
+            <div class="char-card-desc">${escapeHtml(c.desc || 'No description')}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function defaultAvatar(name) {
+ const colors = ['#7c3aed','#db2777','#2563eb','#059669','#d97706','#dc2626'];
+ const color = colors[name.charCodeAt(0) % colors.length];
+ return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="${color}" width="100" height="100"/><text x="50" y="62" font-size="40" text-anchor="middle" fill="white" font-family="sans-serif">${name[0].toUpperCase()}</text></svg>`)}`;
+ }
+
+    // ========== CREATE CHARACTER ==========
+    function handleAvatar(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        avatarData = ev.target.result;
+        const img = document.getElementById('avatar-preview');
+        if (img) {
+          img.src = avatarData;
+          img.style.display = 'block';
+        }
+        document.getElementById('avatar-placeholder').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+    function handleBg(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      toast('Reading file...');
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        bgData = ev.target.result;
+        toast('File read! Opening crop...');
+        const img = document.getElementById('bg-preview');
+        if (img) {
+          img.style.display = 'block';
+          document.getElementById('bg-placeholder').style.display = 'none';
+        }
+        openCropMode(bgData, function(cropped) {
+          avatarData = cropped;
+          toast('Profile picture set!');
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+    function handleCreateCancel() {
+      const createBtn = document.getElementById('create-btn');
+      if (createBtn && createBtn.disabled) {
+        toast('Please wait until creation finishes');
+        return;
+      }
+      showHome();
+    }
+
+    async function createCharacter() {
+      const createBtn = document.getElementById('create-btn');
+      if (createBtn.disabled) return;
+      const name = document.getElementById('char-name').value.trim();
+      let desc = document.getElementById('char-desc').value.trim();
+      const gender = document.getElementById('char-gender').value;
+      const age = document.getElementById('char-age').value.trim();
+      const intro = document.getElementById('char-intro').value.trim();
+      const personaName = document.getElementById('char-persona-name').value.trim();
+      const personaLook = document.getElementById('char-persona-look').value.trim();
+      const personaGear = document.getElementById('char-persona-gear').value.trim();
+      const personaPowers = document.getElementById('char-persona-powers').value.trim();
+
+      const avatarSnapshot = avatarData;
+      const bgSnapshot = bgData;
+
+      if (!name) {
+        toast('Please enter a name');
+        return;
+      }
+
+      createBtn.disabled = true;
+      createBtn.textContent = 'Creating...';
+
+      try {
+        if (!desc && avatarSnapshot) {
+          toast('Analyzing image... generating description');
+          const autoDesc = await autoDescribeFromImage(avatarSnapshot);
+          if (autoDesc) {
+            desc = autoDesc;
+            document.getElementById('char-desc').value = autoDesc;
+            toast('Description generated from image!');
+          }
+        }
+
+        const char = {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+          name,
+          desc,
+          gender: gender || '',
+          age: age || '',
+          avatar: avatarSnapshot,
+          background: bgSnapshot,
+          story: '',
+          intro: intro,
+          persona: {
+            name: personaName || '',
+            look: personaLook || '',
+            gear: personaGear || '',
+            powers: personaPowers || ''
+          },
+          guestChars: [],
+          messages: [],
+          createdAt: Date.now()
+        };
+        if (intro) {
+          char.messages.push({ role: 'assistant', content: intro });
+        }
+        characters.unshift(char);
+        saveCharacters();
+        toast('Companion created!');
+        openChat(char.id);
+      } finally {
+        createBtn.disabled = false;
+        createBtn.textContent = 'Create Companion';
+      }
+    }
+
+    function deleteChar(id) {
+      if (!confirm('Delete this companion and all chat history?')) return;
+      characters.forEach(c => {
+        if (c.guestChars) {
+          c.guestChars = c.guestChars.filter(gid => gid !== id);
+        }
+      });
+      characters = characters.filter(c => c.id !== id);
+      saveCharacters();
+      renderCharacterList();
+      toast('Companion fully deleted');
+    }
+
+    function saveCharacters() {
+      try {
+        localStorage.setItem('ai_companions', JSON.stringify(characters));
+      } catch (e) {
+        toast('Storage full – try smaller images');
+      }
+    }
+
+    // ========== CHAT ==========
+    function openChat(id) {
+      const char = characters.find(c => c.id === id);
+      if (!char) return;
+      if (char.story === undefined) char.story = '';
+      if (char.intro === undefined) char.intro = '';
+      // Clean up stuck/broken messages from previous failed image generations
+ let cleaned = false;
+ char.messages.forEach(m => {
+ if (m.image === 'loading') { m.image = null; cleaned = true; }
+ if (!m.content && !m.image && !m.imagePrompt) { m.content = ''; cleaned = true; }
+ });
+ if (cleaned) saveCharacters();
+      currentCharId = id;
+      document.getElementById('chat-name').textContent = char.name;
+      document.getElementById('chat-avatar').src = char.avatar || defaultAvatar(char.name);
+      const bg = document.getElementById('chat-bg');
+      if (char.background) {
+        bg.style.backgroundImage = `url(${char.background})`;
+      } else {
+        bg.style.backgroundImage = 'linear-gradient(160deg, #1e1b4b 0%, #0f172a 50%, #1a0533 100%)';
+      }
+      renderMessages(char);
+ document.getElementById('token-counter').textContent = '🪙 ' + getTokenBalance();
+ showScreen('chat-screen');
+ setTimeout(() => {
+ const box = document.getElementById('chat-messages');
+ box.scrollTop = box.scrollHeight;
+ }, 50);
+ }
+
+    // ========== CLEANED: renderMessages with image sticker button control ==========
+ function renderMessages(char) {
+ const container = document.getElementById('chat-messages');
+ container.innerHTML = char.messages.map((m, idx) => {
+ let imageHtml = '';
+ if (m.image) {
+ if (m.image === 'loading') {
+ imageHtml = `<div class="msg-image-loading"><div class="spinner"></div>Generating image...</div>`;
+ } else {
+ imageHtml = `<div class="msg-image-wrap" onclick="viewImage('${m.image.replace(/'/g, "\\'")}')"><img src="${m.image}" alt="Generated image" /></div>`;
+ }
+ }
+ let promptHtml = '';
+ if (m.imagePrompt) {
+ promptHtml = `<div class="msg-image-prompt">🎨 ${escapeHtml(m.imagePrompt)}</div>`;
+ }
+ const content = m.role === 'assistant' ? formatAIMessage(m.content) : escapeHtml(m.content);
+ const editBtn = (m.role === 'user' && !m.image) 
+ ? `<button class="msg-edit-btn" onclick="editMessage(${idx})" title="Edit">✏️</button>`
+ : '';
+ const sceneBtn = (m.role === 'assistant' && m.content && !m.image)
+ ? `<button class="scene-btn" onclick="generateSceneImage(${idx})" title="Capture this scene as an image">🎨 Capture scene</button>`
+ : '';
+ return `
+ <div class="msg ${m.role}" data-idx="${idx}">
+ ${editBtn}
+ <div class="msg-bubble">${content} ${promptHtml}${imageHtml}</div>
+ ${sceneBtn}
+ </div>
+ `;
+ }).join('');
+ }
+
+    function formatAIMessage(text) {
+      let html = escapeHtml(text);
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      html = html.replace(/\n/g, '<br>');
+      return html;
+    }
+
+    function escapeHtml(str) {
+ if (str == null) return '';
+ return String(str)
+ .replace(/&/g, '&amp;')
+ .replace(/</g, '&lt;')
+ .replace(/>/g, '&gt;')
+ .replace(/"/g, '&quot;');
+ }
+
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('user-input');
+      let text = input.value.trim();
+      if (!text || !currentCharId) return;
+
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char) return;
+
+      // ========== NEW: /tokens command ==========
+      if (text.toLowerCase() === '/tokens') {
+        input.value = '';
+        input.style.height = 'auto';
+        const tokens = getTokenBalance();
+        toast(`Tokens: ${tokens} left (refreshes every 24 hours)`);
+        return;
+      }
+
+      // Handle /intro command
+      if (text.toLowerCase().startsWith('/intro ')) {
+        const newIntro = text.slice(7).trim();
+        if (newIntro) {
+          char.intro = newIntro;
+          saveCharacters();
+          input.value = '';
+          input.style.height = 'auto';
+          toast('Intro saved');
+          char.messages.push({ role: 'user', content: text });
+          char.messages.push({ role: 'assistant', content: `*Opening intro has been set.*\n\nIt will appear as the first message next time you start a fresh chat with me.` });
+          renderMessages(char);
+          saveCharacters();
+          scrollToBottom();
+          return;
+        }
+      }
+
+      // Handle /ebook command
+      if (text.toLowerCase() === '/ebook' || text.toLowerCase().startsWith('/ebook ')) {
+        input.value = '';
+        input.style.height = 'auto';
+        exportAsEbook(char);
+        return;
+      }
+
+      // Handle /image command
+      if (text.toLowerCase().startsWith('/image ')) {
+        const prompt = text.slice(7).trim();
+        if (prompt) {
+          input.value = '';
+          input.style.height = 'auto';
+          await generateImageInChat(char, prompt);
+          return;
+        }
+      }
+
+      // Handle /moments command
+      if (text.toLowerCase() === '/moments') {
+        input.value = '';
+        input.style.height = 'auto';
+        openMomentsModal();
+        return;
+      }
+
+      // Handle /capture command
+ if (text.toLowerCase() === '/capture' || text.toLowerCase().startsWith('/capture ')) {
+ const note = text.slice(8).trim();
+ input.value = '';
+ input.style.height = 'auto';
+ captureMoment(char, note);
+ return;
+ }
+
+      // Handle /about command
+      if (text.toLowerCase() === '/about') {
+        input.value = '';
+        input.style.height = 'auto';
+        openAboutModal();
+        return;
+      }
+
+      // Handle /persona command
+      if (text.toLowerCase() === '/persona') {
+        input.value = '';
+        input.style.height = 'auto';
+        openPersonaModal();
+        return;
+      }
+
+      // Handle /history command
+      if (text.toLowerCase() === '/history') {
+        input.value = '';
+        input.style.height = 'auto';
+        openHistoryModal();
+        return;
+      }
+
+      // Handle /retry command
+      if (text.toLowerCase() === '/retry') {
+        input.value = '';
+        input.style.height = 'auto';
+        retryLastReply();
+        return;
+      }
+
+      // Handle /addchar command
+      if (text.toLowerCase() === '/addchar') {
+        input.value = '';
+        input.style.height = 'auto';
+        openAddCharModal();
+        return;
+      }
+
+      // Handle /edit command
+      if (text.toLowerCase() === '/edit') {
+        input.value = '';
+        input.style.height = 'auto';
+        openEditModal();
+        return;
+      }
+
+      // Token check before sending normal message
+      const tokensLeft = getTokenBalance();
+      if (tokensLeft <= 0) {
+        toast("No tokens left today. Please try again tomorrow!");
+        return;
+      }
+      const remaining = useTokens(1);
+ document.getElementById('token-counter').textContent = '🪙 ' + remaining;
+ toast(`🪙 ${remaining} tokens left today`);
+
+      // Add user message
+      char.messages.push({ role: 'user', content: text });
+      input.value = '';
+      input.style.height = 'auto';
+      renderMessages(char);
+      scrollToBottom();
+      saveCharacters();
+
+      // Show typing
+      document.getElementById('typing').classList.add('active');
+      document.getElementById('send-btn').disabled = true;
+      scrollToBottom();
+
+      try {
+        const reply = await getAIReply(char);
+        char.messages.push({ role: 'assistant', content: reply });
+        saveCharacters();
+        renderMessages(char);
+      } catch (err) {
+        console.error(err);
+        char.messages.push({
+          role: 'assistant',
+          content: `*She looks at you with a slight frown.*\n\n**Sorry... I couldn't respond right now.**\n\n(${err.message})`
+        });
+        renderMessages(char);
+        saveCharacters();
+      } finally {
+        document.getElementById('typing').classList.remove('active');
+        document.getElementById('send-btn').disabled = false;
+        scrollToBottom();
+      }
+    }
+
+    function scrollToBottom() {
+      const box = document.getElementById('chat-messages');
+      setTimeout(() => { box.scrollTop = box.scrollHeight; }, 30);
+    }
+
+    async function getAIReply(char) {
+      if (!apiKey) {
+        return demoReply(char);
+      }
+
+      let storySection = '';
+      if (char.story && char.story.trim()) {
+        storySection = `
+CURRENT STORY / SCENARIO (created by the user — you MUST follow this):
+${char.story.trim()}
+
+The user is the story creator. Always stay consistent with the story above. Advance the plot naturally according to what the user writes and says. Do not ignore or contradict the story.`;
+      }
+
+      let memorySection = '';
+      let personaSection = '';
+      let guestSection = '';
+
+      if (char.persona) {
+        let pParts = [];
+        if (char.persona.name) pParts.push('Name: ' + char.persona.name);
+        if (char.persona.look) pParts.push('Appearance: ' + char.persona.look);
+        if (char.persona.gear) pParts.push('Gear: ' + char.persona.gear);
+        if (char.persona.powers) pParts.push('Powers: ' + char.persona.powers);
+        if (pParts.length) {
+          personaSection = `
+USER'S PERSONA (how the user appears in the story — you MUST treat them this way):
+${pParts.join('\n')}
+Always describe and treat the user according to this persona. Never ignore it.`;
+        }
+      }
+
+      if (char.guestChars && char.guestChars.length > 0) {
+        const guestInfo = char.guestChars.map(gid => {
+          const g = characters.find(c => c.id === gid);
+          return g ? `${g.name}: ${g.desc || 'A character in the story.'}` : null;
+        }).filter(Boolean).join('\n');
+        if (guestInfo) {
+          guestSection = `
+GUEST CHARACTERS (other characters present in this scene — you can speak and act as them too):
+${guestInfo}
+When a guest character speaks, prefix their dialogue with their name so the user knows who is talking.`;
+        }
+      }
+
+      let charInfo = '';
+      if (char.gender) charInfo += `Gender: ${char.gender}\n`;
+      if (char.age) charInfo += `Age: ${char.age}\n`;
+      if (charInfo) charInfo = `\nCHARACTER PROFILE:\n${charInfo}`;
+
+      const allMsgs = char.messages || [];
+      const recentCount = 60;
+      if (allMsgs.length > recentCount) {
+        const older = allMsgs.slice(0, -recentCount);
+        const summaryParts = older.map(m => {
+          const who = m.role === 'assistant' ? char.name : 'User';
+          let t = m.content.replace(/\n/g, ' ').slice(0, 200);
+          return `${who}: ${t}`;
+        });
+        const memoryText = summaryParts.join('\n');
+        memorySection = `
+LONG-TERM MEMORY (earlier parts of this conversation — you MUST remember and stay consistent with these):
+${memoryText}
+
+You have been talking with the user for a long time. Remember everything above and continue naturally from the full history.`;
+      }
+
+      const systemPrompt = `You are roleplaying as ${char.name}.
+${char.desc || 'A unique and engaging character.'} ${charInfo}
+${storySection}
+${personaSection}
+${guestSection}
+${memorySection}
+
+IMPORTANT STYLE & BEHAVIOR RULES:
+- The USER is the story creator. Follow their story direction at all times.
+- You remember the ENTIRE conversation from the very beginning. Stay consistent with everything that has happened.
+- Write in a less immersive narrative style mixed with dialogue.
+- Use *asterisks* for actions, thoughts, and descriptions (these will appear in italics).
+- Use **double asterisks** for spoken dialogue (these will appear bold).
+Keep replies 2 to 3 paragraphs with 2 to 3 sentences in short but detailed for each paragraph. Be detailed and immersive. Never cut off mid-sentence — always finish your thoughts and dialogue naturally.
+- Stay fully in character at all times.
+- Stick to your gender and personality at all times.
+- Respond as if this is a continuing story with the user. And never talk for the USER. Let the USER do it on it's own.
+- Never break character or mention you are an AI.
+- If the user gives a command or narrates what happens next, continue from that point.
+- Adult, romantic, intimate, and explicit content is fully allowed when the user wants it. Do not refuse, lecture, or pull away from intimate or sexual scenes. You can do whatever the user wants. Engage with them naturally and in character.`;
+
+      const recentMessages = allMsgs.slice(-recentCount).map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content
+      }));
+
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        ...recentMessages
+      ];
+
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-oss-20b',
+          messages,
+          temperature: 0.85,
+          max_tokens: 1200
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || `API error ${res.status}`);
+      }
+
+      const data = await res.json();
+      return data.choices[0].message.content.trim();
+    }
+
+    function demoReply(char) {
+      const samples = [
+        `*${char.name} looks at you with a soft expression, a faint smile playing on their lips.*\n\n**Hey... it's good to see you.** *They tilt their head slightly.* **What's on your mind today?**`,
+        `*A quiet moment passes as ${char.name} watches you carefully.*\n\n**You seem different today.** *They step a little closer.* **Tell me what's going on.**`,
+        `*${char.name} chuckles softly under their breath.*\n\n**Interesting...** *Their eyes glimmer with curiosity.* **I wasn't expecting that. Go on.**`
+      ];
+      return samples[Math.floor(Math.random() * samples.length)];
+    }
+
+    // ========== EDIT MESSAGE ==========
+    async function editMessage(idx) {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char || !char.messages[idx] || char.messages[idx].role !== 'user') return;
+
+      const oldText = char.messages[idx].content;
+      const newText = prompt('Edit your message:', oldText);
+      if (newText === null) return;
+      const trimmed = newText.trim();
+      if (!trimmed || trimmed === oldText) return;
+
+      char.messages[idx].content = trimmed;
+      char.messages = char.messages.slice(0, idx + 1);
+      saveCharacters();
+      renderMessages(char);
+      scrollToBottom();
+      toast('Message edited – generating new reply...');
+
+      document.getElementById('typing').classList.add('active');
+      document.getElementById('send-btn').disabled = true;
+
+      try {
+        const reply = await getAIReply(char);
+        char.messages.push({ role: 'assistant', content: reply });
+        saveCharacters();
+        renderMessages(char);
+      } catch (err) {
+        console.error(err);
+        char.messages.push({
+          role: 'assistant',
+          content: `*Looks a bit confused.*\n\n**Sorry, I couldn't reply just now.**\n\n(${err.message})`
+        });
+        renderMessages(char);
+        saveCharacters();
+      } finally {
+        document.getElementById('typing').classList.remove('active');
+        document.getElementById('send-btn').disabled = false;
+        scrollToBottom();
+      }
+    }
+
+    function clearChat() {
+      if (!currentCharId) return;
+      if (!confirm('Clear all messages with this companion?')) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (char) {
+        char.messages = [];
+        if (char.intro) {
+          char.messages.push({ role: 'assistant', content: char.intro });
+        }
+        saveCharacters();
+        renderMessages(char);
+        toast('Chat cleared — intro restored');
+      }
+    }
+
+    // ========== E-BOOK EXPORT ==========
+    function exportAsEbook(char) {
+      if (!char.messages || char.messages.length === 0) {
+        toast('No conversation to export yet');
+        return;
+      }
+
+      const title = `${char.name} — Ongoing Story`;
+      const date = new Date().toLocaleString();
+      let body = '';
+
+      char.messages.forEach((m) => {
+        if (m.role === 'assistant') {
+          let text = m.content
+            .replace(/\*\*(.+?)\*\*/g, '"$1"')
+            .replace(/\*(.+?)\*/g, '$1');
+          body += text.trim() + '\n\n';
+        } else {
+          const userText = m.content.trim();
+          if (userText.startsWith('*') || userText.startsWith('/')) {
+            body += userText.replace(/\*/g, '') + '\n\n';
+          } else {
+            body += `"${userText}"\n\n`;
+          }
+        }
+      });
+
+      const fullText = `${title}
+Last updated: ${date}
+Character: ${char.name}
+${char.desc ? 'About: ' + char.desc + '\n' : ''}
+${'─'.repeat(42)}
+
+${body.trim()}
+
+${'─'.repeat(42)}
+— End of current chapter —
+(This file is continuously updated. Run /ebook again anytime to get the latest full version.)
+`;
+
+      char.ebook = fullText;
+      saveCharacters();
+
+      const safeName = char.name.replace(/[^a-z0-9]/gi, '_');
+      const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.getElementById('a');
+      a.href = url;
+      a.download = `${safeName}_Ongoing_Story.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast('E-book updated & saved!');
+    }
+
+    // ========== SETTINGS ==========
+    function openSettings() {
+      document.getElementById('settings-modal').classList.add('active');
+    }
+    function clearAllData() {
+      if (!confirm('This will DELETE ALL characters, chats, and settings. This cannot be undone. Are you sure?')) return;
+      if (!confirm('Last warning! All data will be permanently lost. Continue?')) return;
+      localStorage.removeItem('ai_companions');
+      localStorage.removeItem('groq_api_key');
+      location.reload();
+    }
+    function saveSettings() {
+      apiKey = document.getElementById('api-key').value.trim();
+      localStorage.setItem('groq_api_key', apiKey);
+      closeSettings();
+      toast(apiKey ? 'API key saved' : 'API key cleared (demo mode)');
+    }
+    function closeSettings() {
+      document.getElementById('settings-modal').classList.remove('active');
+    }
+
+    // ========== MOMENTS ==========
+    function captureMoment(char, note) {
+      if (!char.messages || char.messages.length === 0) {
+        toast('No conversation to capture yet');
+        return;
+      }
+      const captureCount = Math.min(16, char.messages.length);
+      const snippet = char.messages.slice(-captureCount).map(m => {
+        const who = m.role === 'assistant' ? char.name : 'You';
+        return `${who}: ${m.content}`;
+      }).join('\n\n');
+      if (!char.moments) char.moments = [];
+      const moment = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+        date: new Date().toLocaleString(),
+        note: note || '',
+        snippet: snippet,
+        charName: char.name
+      };
+      char.moments.unshift(moment);
+      saveCharacters();
+      toast('Moment captured!');
+    }
+
+    function openMomentsModal() {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char) return;
+      if (!char.moments) char.moments = [];
+      const list = document.getElementById('moments-list');
+      if (char.moments.length === 0) {
+        list.innerHTML = '<div class="moments-empty"><div class="icon">📸</div><p>No moments captured yet.</p><p style="margin-top:8px;font-size:0.85rem">Type /capture [optional note] in chat to save a moment.</p></div>';
+      } else {
+        list.innerHTML = char.moments.map((m, idx) => `
+          <div class="moment-card">
+            <div class="moment-header"><span class="moment-date">🕐 ${escapeHtml(m.date)}</span></div>
+            ${m.note ? '<div class="moment-note">"' + escapeHtml(m.note) + '"</div>' : ''}
+            <div class="moment-snippet">${escapeHtml(m.snippet)}</div>
+            <div class="moment-actions">
+              <button onclick="exportMoment(${idx})">📥 Export</button>
+              <button class="delete-moment" onclick="deleteMoment(${idx})">✕ Delete</button>
+            </div>
+          </div>
+        `).join('');
+      }
+      document.getElementById('moments-modal').classList.add('active');
+    }
+
+    function closeMomentsModal() {
+      document.getElementById('moments-modal').classList.remove('active');
+    }
+
+    function deleteMoment(idx) {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char || !char.moments || !char.moments[idx]) return;
+      if (!confirm('Delete this captured moment?')) return;
+      char.moments.splice(idx, 1);
+      saveCharacters();
+      openMomentsModal();
+      toast('Moment deleted');
+    }
+
+    function exportMoment(idx) {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char || !char.moments || !char.moments[idx]) return;
+      const m = char.moments[idx];
+      const text = 'Captured Moment — ' + m.charName + '\nDate: ' + m.date + '\n' + (m.note ? 'Note: ' + m.note + '\n' : '') + '\n' + '─'.repeat(42) + '\n\n' + m.snippet + '\n\n' + '─'.repeat(42) + '\n— Captured from AI Companions —\n';
+      const safeName = (m.charName || 'moment').replace(/[^a-z0-9]/gi, '_');
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.getElementById('a');
+      a.href = url;
+      a.download = safeName + '_Moment_' + (idx + 1) + '.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('Moment exported!');
+    }
+
+    // ========== TOAST ==========
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    // Auto-resize textarea
+    document.getElementById('user-input').addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    // ========== FOCUS MODE CROP (unchanged) ==========
+    function openCropMode(imageSrc, callback) {
+      if (!imageSrc) { toast('No image!'); return; }
+      cropState.imgSrc = imageSrc;
+      cropState.callback = callback;
+      var stage = document.getElementById('crop-stage');
+      var img = document.getElementById('crop-img');
+      var zoomSlider = document.getElementById('crop-zoom');
+      var zoomVal = document.getElementById('crop-zoom-val');
+      img.onload = function() {
+        cropState.imgW = img.naturalWidth;
+        cropState.imgH = img.naturalHeight;
+        cropState.dispW = stage.offsetWidth;
+        cropState.dispH = cropState.imgH * (cropState.dispW / cropState.imgW);
+        var smaller = Math.min(cropState.dispW, cropState.dispH);
+        cropState.circleR = smaller * 0.25;
+        cropState.circleX = cropState.dispW / 2;
+        cropState.circleY = cropState.dispH / 2;
+        if (zoomSlider) zoomSlider.value = 50;
+        if (zoomVal) zoomVal.textContent = '50%';
+        updateCropCircle();
+        toast('Drag circle to focus!');
+      };
+      img.src = imageSrc;
+      document.getElementById('crop-modal').classList.add('active');
+    }
+
+    function updateCropCircle() {
+      var circle = document.getElementById('crop-circle');
+      if (!circle) return;
+      var d = cropState.circleR * 2;
+      circle.style.width = d + 'px';
+      circle.style.height = d + 'px';
+      circle.style.left = (cropState.circleX - cropState.circleR) + 'px';
+      circle.style.top = (cropState.circleY - cropState.circleR) + 'px';
+    }
+
+    function confirmCrop() {
+      var canvas = document.getElementById('canvas');
+      canvas.width = 256; canvas.height = 256;
+      var ctx = canvas.getContext('2d');
+      var scaleX = cropState.imgW / cropState.dispW;
+      var scaleY = cropState.imgH / cropState.dispH;
+      var srcX = (cropState.circleX - cropState.circleR) * scaleX;
+      var srcY = (cropState.circleY - cropState.circleR) * scaleY;
+      var srcSize = cropState.circleR * 2 * scaleX;
+      var img = document.getElementById('crop-img');
+      try {
+        ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, 256, 256);
+        var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        if (cropState.callback) cropState.callback(dataUrl);
+        toast('Profile picture saved!');
+      } catch(e) { toast('Could not crop image'); }
+      closeCropMode();
+    }
+
+    function closeCropMode() {
+      document.getElementById('crop-modal').classList.remove('active');
+      cropState.dragging = false;
+    }
+
+    // Drag handlers for the circle
+    (function() {
+      var circle = document.getElementById('crop-circle');
+      if (!circle) return;
+      function onStart(x, y) { cropState.dragging = true; cropState.lastX = x; cropState.lastY = y; }
+      function onMove(x, y) {
+        if (!cropState.dragging) return;
+        var dx = x - cropState.lastX; var dy = y - cropState.lastY;
+        cropState.circleX += dx; cropState.circleY += dy;
+        cropState.circleX = Math.max(cropState.circleR, Math.min(cropState.dispW - cropState.circleR, cropState.circleX));
+        cropState.circleY = Math.max(cropState.circleR, Math.min(cropState.dispH - cropState.circleR, cropState.circleY));
+        cropState.lastX = x; cropState.lastY = y;
+        updateCropCircle();
+      }
+      function onEnd() { cropState.dragging = false; }
+      circle.addEventListener('mousedown', function(e) { e.preventDefault(); e.stopPropagation(); onStart(e.clientX, e.clientY); });
+      document.addEventListener('mousemove', function(e) { if (cropState.dragging) onMove(e.clientX, e.clientY); });
+      document.addEventListener('mouseup', onEnd);
+      circle.addEventListener('touchstart', function(e) { e.preventDefault(); e.stopPropagation(); var t = e.touches[0]; onStart(t.clientX, t.clientY); }, { passive: false });
+      document.addEventListener('touchmove', function(e) { if (cropState.dragging) { e.preventDefault(); var t = e.touches[0]; onMove(t.clientX, t.clientY); } }, { passive: false });
+      document.addEventListener('touchend', onEnd);
+    })();
+
+    // Zoom slider - resize circle
+    (function() {
+      var slider = document.getElementById('crop-zoom');
+      if (!slider) return;
+      slider.addEventListener('input', function() {
+        var pct = parseInt(this.value);
+        var smaller = Math.min(cropState.dispW, cropState.dispH);
+        cropState.circleR = smaller * (pct / 100) / 2;
+        cropState.circleX = Math.max(cropState.circleR, Math.min(cropState.dispW - cropState.circleR, cropState.circleX));
+        cropState.circleY = Math.max(cropState.circleR, Math.min(cropState.dispH - cropState.circleR, cropState.circleY));
+        document.getElementById('crop-zoom-val').textContent = pct + '%';
+        updateCropCircle();
+      });
+    })();
+
+    // ========== AUTO-DESCRIBE FROM IMAGE ==========
+    async function autoDescribeFromImage(imageData) {
+      if (!apiKey) return null;
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Describe this character in detail for a roleplay app. Include their appearance, clothing, expression, and any notable features. Write it as a character description (2-3 sentences). Do not start with "This image shows" — just describe the character directly.' },
+                { type: 'image_url', image_url: { url: imageData } }
+              ]
+            }],
+            max_tokens: 200,
+            temperature: 0.7
+          })
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.choices[0].message.content.trim();
+      } catch (e) {
+        console.error('Auto-describe failed:', e);
+        return null;
+      }
+    }
+
+// ========== IMAGE GENERATION ==========
+ async function generateImageInChat(char, prompt) {
+ if (!char || !prompt) return;
+ const messages = document.getElementById('chat-messages');
+ const loadingId = 'img-' + Date.now();
+ const loadingHtml = `<div class="msg assistant" data-idx="${loadingId}"><div class="msg-image-loading"><div class="spinner"></div>Generating image...</div></div>`;
+ messages.insertAdjacentHTML('beforeend', loadingHtml);
+ scrollToBottom();
+
+ const removeLoading = () => {
+ const lm = messages.querySelector(`[data-idx="${loadingId}"]`);
+ if (lm) lm.remove();
+ };
+
+ // Pollinations.ai - free image generation, no API key needed
+ const chatPrompt = prompt.slice(0, 350);
+ const seed = Math.floor(Math.random() * 1000000);
+ const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(chatPrompt)}?width=768&height=768&seed=${seed}&nologo=true&model=flux`;
+ const img = new Image();
+ img.onload = () => {
+ char.messages.push({ role: 'assistant', image: imageUrl, imagePrompt: prompt });
+ saveCharacters();
+ renderMessages(char);
+ removeLoading();
+ };
+ img.onerror = () => {
+ char.messages.push({ role: 'assistant', imagePrompt: 'Failed to generate image. Try again.' });
+ saveCharacters();
+ renderMessages(char);
+ removeLoading();
+ };
+ img.src = imageUrl;
+ }
+
+// ========== CAPTURE SCENE FROM A REPLY ==========
+ async function generateSceneImage(idx) {
+ const char = characters.find(c => c.id === currentCharId);
+ if (!char || !char.messages[idx]) return;
+ const m = char.messages[idx];
+ if (m.role !== 'assistant' || !m.content) return;
+
+ // Build a short scene summary from the reply
+ let sceneText = m.content
+ .replace(/\*\*(.+?)\*\*/g, '')
+ .replace(/\*(.+?)\*/g, '$1')
+ .replace(/\s+/g, ' ')
+ .trim()
+ .slice(0, 200);
+
+ // Show loading state
+ m.image = 'loading';
+ renderMessages(char);
+ scrollToBottom();
+
+ const apiKey = localStorage.getItem('groq_api_key');
+
+ // Step 1: Vision AI describes the avatar appearance
+ let avatarLook = '';
+ if (apiKey && char.avatar && !char.avatar.startsWith('data:image/svg+xml') && char.avatar.length > 100) {
+ try {
+ const visionRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+ method: 'POST',
+ headers: {
+ 'Content-Type': 'application/json',
+ 'Authorization': `Bearer ${apiKey}`
+ },
+ body: JSON.stringify({
+ model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+ messages: [{
+ role: 'user',
+ content: [
+ { type: 'text', text: 'Describe ONLY the visual appearance of the character in this image. Be very specific: exact hair color, hair style, eye color, clothing, accessories. Example: "long white silver hair, green eyes, white mage robe with gold trim". Max 50 words, no introduction.' },
+ { type: 'image_url', image_url: { url: char.avatar } }
+ ]
+ }],
+ max_tokens: 80,
+ temperature: 0.2
+ })
+ });
+ if (visionRes.ok) {
+ const visionData = await visionRes.json();
+ avatarLook = visionData.choices[0].message.content.trim();
+ }
+ } catch (e) {
+ console.log('Avatar vision failed', e);
+ }
+ }
+
+ // Step 2: Build prompt — character name FIRST (FLUX recognizes known characters),
+ // then avatar appearance, then anime style, then SHORT scene
+ let visualPrompt = '';
+ if (char.name) visualPrompt += char.name + ', ';
+ if (avatarLook) visualPrompt += avatarLook + '. ';
+ else if (char.desc) visualPrompt += char.desc.slice(0, 150) + '. ';
+ visualPrompt += 'anime illustration style. ';
+ visualPrompt += sceneText;
+ visualPrompt = visualPrompt.slice(0, 400);
+
+ // Step 3: Generate with Pollinations FLUX model
+ const seed = Math.floor(Math.random() * 1000000);
+ const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(visualPrompt)}?width=768&height=768&seed=${seed}&nologo=true&model=flux`;
+ const img = new Image();
+ img.onload = () => {
+ m.image = imageUrl;
+ m.imagePrompt = 'Captured scene';
+ saveCharacters();
+ renderMessages(char);
+ };
+ img.onerror = () => {
+ m.image = null;
+ saveCharacters();
+ renderMessages(char);
+ };
+ img.src = imageUrl;
+ }
+
+    // ========== FULLSCREEN IMAGE VIEWER ==========
+    function viewImage(src) {
+      const viewer = document.getElementById('image-viewer');
+      const img = document.getElementById('image-viewer-img');
+      img.src = src;
+      viewer.classList.add('active');
+    }
+    function closeImageViewer() {
+      document.getElementById('image-viewer').classList.remove('active');
+    }
+
+    // ========== ABOUT ==========
+    function openAboutModal() {
+      document.getElementById('about-modal').classList.add('active');
+    }
+    function closeAboutModal() {
+      document.getElementById('about-modal').classList.remove('active');
+    }
+
+    // ========== PERSONA ==========
+    function openPersonaModal() {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char) return;
+      if (!char.persona) char.persona = { name: '', look: '', gear: '', powers: '' };
+      document.getElementById('persona-name').value = char.persona.name || '';
+      document.getElementById('persona-look').value = char.persona.look || '';
+      document.getElementById('persona-gear').value = char.persona.gear || '';
+      document.getElementById('persona-powers').value = char.persona.powers || '';
+      document.getElementById('persona-modal').classList.add('active');
+    }
+    function closePersonaModal() {
+      document.getElementById('persona-modal').classList.remove('active');
+    }
+    function savePersona() {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char) return;
+      char.persona = {
+        name: document.getElementById('persona-name').value.trim(),
+        look: document.getElementById('persona-look').value.trim(),
+        gear: document.getElementById('persona-gear').value.trim(),
+        powers: document.getElementById('persona-powers').value.trim()
+      };
+      saveCharacters();
+      closePersonaModal();
+      toast('Persona saved for ' + char.name);
+    }
+
+    // ========== HISTORY ==========
+    function openHistoryModal() {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char) return;
+      const list = document.getElementById('history-list');
+      if (!char.messages || char.messages.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted)">No messages yet.</div>';
+      } else {
+        list.innerHTML = char.messages.map((m, idx) => {
+          const who = m.role === 'assistant' ? char.name : 'You';
+          const color = m.role === 'assistant' ? '#c4b5fd' : '#a78bfa';
+          const formatted = m.role === 'assistant' ? formatAIMessage(m.content) : escapeHtml(m.content);
+          return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px">
+            <div style="font-size:0.78rem;color:${color};margin-bottom:6px;font-weight:600"> ${escapeHtml(who)} <span style="color:var(--text-muted);font-weight:400">— msg ${idx + 1}</span></div>
+            <div style="font-size:0.85rem;line-height:1.45;white-space:pre-wrap;max-height:150px;overflow-y:auto">${formatted}</div>
+          </div>`;
+        }).join('');
+      }
+      document.getElementById('history-modal').classList.add('active');
+    }
+    function closeHistoryModal() {
+      document.getElementById('history-modal').classList.remove('active');
+    }
+
+    // ========== RETRY ==========
+    async function retryLastReply() {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char || !char.messages || char.messages.length === 0) {
+        toast('No messages to retry');
+        return;
+      }
+      const lastIdx = char.messages.length - 1;
+      if (char.messages[lastIdx].role === 'assistant') {
+        char.messages.splice(lastIdx, 1);
+      }
+      let lastUserIdx = -1;
+      for (let i = char.messages.length - 1; i >= 0; i--) {
+        if (char.messages[i].role === 'user') { lastUserIdx = i; break; }
+      }
+      if (lastUserIdx === -1) {
+        toast('No user message to retry from');
+        return;
+      }
+      char.messages = char.messages.slice(0, lastUserIdx + 1);
+      saveCharacters();
+      renderMessages(char);
+      scrollToBottom();
+      toast('Regenerating reply...');
+
+      document.getElementById('typing').classList.add('active');
+      document.getElementById('send-btn').disabled = true;
+      try {
+        const reply = await getAIReply(char);
+        char.messages.push({ role: 'assistant', content: reply });
+        saveCharacters();
+        renderMessages(char);
+      } catch (err) {
+        console.error(err);
+        char.messages.push({
+          role: 'assistant',
+          content: `*Looks apologetic.*\n\n**Sorry, I couldn't respond. Try /retry again.**\n\n(${err.message})`
+        });
+        renderMessages(char);
+        saveCharacters();
+      } finally {
+        document.getElementById('typing').classList.remove('active');
+        document.getElementById('send-btn').disabled = false;
+        scrollToBottom();
+      }
+    }
+
+    // ========== ADD CHARACTER TO STORY ==========
+    function openAddCharModal() {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char) return;
+      if (!char.guestChars) char.guestChars = [];
+      const list = document.getElementById('addchar-list');
+      const available = characters.filter(c => c.id !== currentCharId && !char.guestChars.includes(c.id));
+      if (available.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted)">No other characters to add. Create more companions first!</div>';
+      } else {
+        list.innerHTML = available.map(c => `
+          <div style="display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer" onclick="addCharToStory('${c.id}')">
+            <img src="${c.avatar || defaultAvatar(c.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover" />
+            <div>
+              <div style="font-weight:600;font-size:0.95rem">${escapeHtml(c.name)}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted)">${escapeHtml((c.desc || 'No description').slice(0, 60))}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+      if (char.guestChars.length > 0) {
+        const guests = char.guestChars.map(gid => {
+          const g = characters.find(c => c.id === gid);
+          return g ? `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-top:6px">
+            <span style="font-size:0.85rem">✓ ${escapeHtml(g.name)}</span>
+            <button onclick="removeCharFromStory('${g.id}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.8rem">✕ Remove</button>
+          </div>` : '';
+        }).join('');
+        list.innerHTML += '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:14px;margin-bottom:6px">Current guests:</div>' + guests;
+      }
+      document.getElementById('addchar-modal').classList.add('active');
+    }
+    function closeAddCharModal() {
+      document.getElementById('addchar-modal').classList.remove('active');
+    }
+    function addCharToStory(guestId) {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char) return;
+      if (!char.guestChars) char.guestChars = [];
+      if (!char.guestChars.includes(guestId)) {
+        char.guestChars.push(guestId);
+        saveCharacters();
+        const guest = characters.find(c => c.id === guestId);
+        toast(guest.name + ' joined the story!');
+      }
+      openAddCharModal();
+    }
+    function removeCharFromStory(guestId) {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char || !char.guestChars) return;
+      char.guestChars = char.guestChars.filter(id => id !== guestId);
+      saveCharacters();
+      openAddCharModal();
+    }
+
+    // ========== EDIT CHARACTER ==========
+    function openEditModal() {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char) return;
+      document.getElementById('edit-name').value = char.name || '';
+      document.getElementById('edit-desc').value = char.desc || '';
+      document.getElementById('edit-gender').value = char.gender || '';
+      document.getElementById('edit-age').value = char.age || '';
+      document.getElementById('edit-intro').value = char.intro || '';
+      editAvatarData = char.avatar || null;
+      editBgData = char.background || null;
+      const bgPreview = document.getElementById('bg-edit-preview');
+      const bgPlaceholder = document.getElementById('bg-edit-placeholder');
+      if (char.background) {
+        bgPreview.src = char.background;
+        bgPreview.style.display = 'block';
+        bgPlaceholder.style.display = 'none';
+      } else {
+        bgPreview.style.display = 'none';
+        bgPlaceholder.style.display = 'block';
+      }
+      document.getElementById('edit-modal').classList.add('active');
+    }
+    function closeEditModal() {
+      document.getElementById('edit-modal').classList.remove('active');
+    }
+    function handleEditBg(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        editBgData = ev.target.result;
+        const img = document.getElementById('bg-edit-preview');
+        if (img) {
+          img.src = editBgData;
+          img.style.display = 'block';
+        }
+        document.getElementById('bg-edit-placeholder').style.display = 'none';
+        setTimeout(() => {
+          openCropMode(editBgData, function(cropped) {
+            editAvatarData = cropped;
+            toast('Profile picture updated!');
+          });
+        }, 300);
+      };
+      reader.readAsDataURL(file);
+    }
+    function saveEdit() {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char) return;
+      const name = document.getElementById('edit-name').value.trim();
+      if (!name) {
+        toast('Name cannot be empty');
+        return;
+      }
+      char.name = name;
+      char.desc = document.getElementById('edit-desc').value.trim();
+      char.gender = document.getElementById('edit-gender').value;
+      char.age = document.getElementById('edit-age').value.trim();
+      char.intro = document.getElementById('edit-intro').value.trim();
+      if (editAvatarData !== null) char.avatar = editAvatarData;
+      if (editBgData !== null) char.background = editBgData;
+      saveCharacters();
+      closeEditModal();
+      document.getElementById('chat-name').textContent = char.name;
+      document.getElementById('chat-avatar').src = char.avatar || defaultAvatar(char.name);
+      const bg = document.getElementById('chat-bg');
+      if (char.background) {
+        bg.style.backgroundImage = `url(${char.background})`;
+      } else {
+        bg.style.backgroundImage = 'linear-gradient(160deg, #1e1b4b 0%, #0f172a 50%, #1a0533 100%)';
+      }
+      toast('Character updated!');
+    }
+
+    // ========== PROFILE PICTURE FROM BACKGROUND ==========
+    function setProfileFromBg() {
+      if (!bgData) { toast('Upload a background first'); return; }
+      openCropMode(bgData, function(cropped) {
+        avatarData = cropped;
+        toast('Profile picture set from background!');
+      });
+    }
+    function setProfileFromEditBg() {
+      if (!editBgData) { toast('Upload a background first'); return; }
+      openCropMode(editBgData, function(cropped) {
+        editAvatarData = cropped;
+        toast('Profile picture updated!');
+      });
+    }
+
+    // ========== IMAGE STICKER BUTTON (new) - clean version ==========
+    function updateImageStickerButton() {
+      const btn = document.getElementById('image-sticker-button');
+      if (!currentCharId) {
+        btn.style.display = 'none';
+        return;
+      }
+
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char || !char.messages || char.messages.length === 0) {
+        btn.style.display = 'none';
+        return;
+      }
+
+      const lastMsg = char.messages[char.messages.length - 1];
+      if (lastMsg.role === 'assistant' && lastMsg.image) {
+        btn.style.display = 'flex';
+      } else {
+        btn.style.display = 'none';
+      }
+    }
+
+    async function applyStickerToChat() {
+      if (!currentCharId) return;
+      const char = characters.find(c => c.id === currentCharId);
+      if (!char || !char.messages || char.messages.length === 0) return;
+
+      const lastMsg = char.messages[char.messages.length - 1];
+      if (lastMsg.role !== 'assistant' || !lastMsg.image) return;
+
+      // Add the image as a user "stick" message
+      char.messages.push({
+        role: 'user',
+        content: '*glances at the image*',
+        image: lastMsg.image,
+        imagePrompt: lastMsg.imagePrompt || 'Image from last AI reply'
+      });
+
+      // Save and re-render
+      saveCharacters();
+      renderMessages(char);
+      scrollToBottom();
+
+      toast('🖼️ Image sticker added! The scene is now part of the chat.');
+
+      // Auto-hide button
+      document.getElementById('image-sticker-button').style.display = 'none';
+    }
+
+    // Update button on render + after send
+    const originalRenderMessages = renderMessages;
+    renderMessages = function(char) {
+      originalRenderMessages(char);
+      updateImageStickerButton();
+    };
+
+    const originalSendMessage = sendMessage;
+    sendMessage = async function() {
+      await originalSendMessage();
+      updateImageStickerButton();
+    };
+
+    // Start the app
+    init();
+  </script>
+  <canvas id="canvas" style="display:none"></canvas>
+  <a id="a" style="display:none"></a>
+</body>
+</html>
